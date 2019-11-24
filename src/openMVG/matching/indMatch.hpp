@@ -1,3 +1,4 @@
+// This file is part of OpenMVG, an Open Multiple View Geometry C++ library.
 
 // Copyright (c) 2012, 2013 Pierre MOULON.
 
@@ -8,14 +9,13 @@
 #ifndef OPENMVG_MATCHING_IND_MATCH_HPP
 #define OPENMVG_MATCHING_IND_MATCH_HPP
 
-#include "openMVG/types.hpp"
-
-#include <cereal/cereal.hpp> // Serialization
-
 #include <iostream>
 #include <map>
 #include <set>
+#include <utility>
 #include <vector>
+
+#include "openMVG/types.hpp"
 
 namespace openMVG {
 namespace matching {
@@ -24,38 +24,36 @@ namespace matching {
 /// A sort operator exist in order to remove duplicates of IndMatch series.
 struct IndMatch
 {
-  IndMatch(IndexT i = 0, IndexT j = 0) : i_(i), j_(j)  {}
-
-  friend bool operator==(const IndMatch& m1, const IndMatch& m2)  {
-    return (m1.i_ == m2.i_ && m1.j_ == m2.j_);
-  }
-
-  friend bool operator!=(const IndMatch& m1, const IndMatch& m2)  {
-    return !(m1 == m2);
-  }
-
-  // Lexicographical ordering of matches. Used to remove duplicates
-  friend bool operator<(const IndMatch& m1, const IndMatch& m2)  {
-    return (m1.i_ < m2.i_ || (m1.i_ == m2.i_ && m1.j_ < m2.j_));
-  }
+  IndMatch(const IndexT i = 0, const IndexT j = 0) : i_(i), j_(j)  {}
 
   /// Remove duplicates ((i_, j_) that appears multiple times)
   static bool getDeduplicated(std::vector<IndMatch> & vec_match)  {
 
     const size_t sizeBefore = vec_match.size();
-    const std::set<IndMatch> set_deduplicated( vec_match.begin(), vec_match.end());
-    vec_match.assign(set_deduplicated.begin(), set_deduplicated.end());
+    const std::set<IndMatch> set_deduplicated( vec_match.cbegin(), vec_match.cend());
+    vec_match.assign(set_deduplicated.cbegin(), set_deduplicated.cend());
     return sizeBefore != vec_match.size();
   }
 
   // Serialization
   template <class Archive>
-  void serialize( Archive & ar )  {
-    ar(i_, j_);
-  }
+  void serialize( Archive & ar );
 
   IndexT i_, j_;  // Left, right index
 };
+
+inline bool operator==(const IndMatch& m1, const IndMatch& m2)  {
+  return (m1.i_ == m2.i_ && m1.j_ == m2.j_);
+}
+
+inline bool operator!=(const IndMatch& m1, const IndMatch& m2)  {
+  return !(m1 == m2);
+}
+
+// Lexicographical ordering of matches. Used to remove duplicates
+inline bool operator<(const IndMatch& m1, const IndMatch& m2)  {
+  return (m1.i_ < m2.i_ || (m1.i_ == m2.i_ && m1.j_ < m2.j_));
+}
 
 inline std::ostream& operator<<(std::ostream & out, const IndMatch & obj) {
   return out << obj.i_ << " " << obj.j_;
@@ -72,7 +70,7 @@ using IndMatches = std::vector<matching::IndMatch>;
 class PairWiseMatchesContainer
 {
 public:
-  virtual ~PairWiseMatchesContainer() {}
+  virtual ~PairWiseMatchesContainer() = default;
   virtual void insert(std::pair<Pair, IndMatches>&& pairWiseMatches) = 0;
 };
 
@@ -81,18 +79,18 @@ public:
 /// A structure used to store corresponding point indexes per images pairs
 struct PairWiseMatches :
   public PairWiseMatchesContainer,
-  public std::map< Pair, IndMatches >
+  public std::map<Pair, IndMatches>
 {
   void insert(std::pair<Pair, IndMatches> && pairWiseMatches)override
   {
-    std::map< Pair, IndMatches >::insert(
+    std::map<Pair, IndMatches>::insert(
       std::forward<std::pair<Pair, IndMatches>>(pairWiseMatches));
   }
 
   // Serialization
   template <class Archive>
   void serialize( Archive & ar )  {
-    ar(static_cast<std::map< Pair, IndMatches >&>(*this));
+    ar(static_cast<std::map<Pair, IndMatches>&>(*this));
   }
 };
 
@@ -107,15 +105,5 @@ inline Pair_Set getPairs(const PairWiseMatches & matches)
 }  // namespace matching
 }  // namespace openMVG
 
-namespace cereal
-{
-  // This struct specialization will tell cereal which is the right way to serialize PairWiseMatches
-  template <class Archive>
-  struct specialize<
-    Archive,
-    openMVG::matching::PairWiseMatches,
-    cereal::specialization::member_serialize>
-  {};
-} // namespace cereal 
 
 #endif // OPENMVG_MATCHING_IND_MATCH_HPP
