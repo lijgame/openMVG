@@ -55,7 +55,7 @@ pIntrisics.wait()
 
 print("2. Compute features")
 pFeatures = subprocess.Popen([os.path.join(OPENMVG_SFM_BIN, "openMVG_main_ComputeFeatures"),
-                              "-i", matches_dir+"/sfm_data.json", "-o", matches_dir, "-m", "AKAZE_MLDB"])
+                              "-i", matches_dir+"/sfm_data.json", "-o", matches_dir, "-m", "SIFT"])
 pFeatures.wait()
 
 print("3. Compute matches")
