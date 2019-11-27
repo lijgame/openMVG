@@ -21,11 +21,15 @@
 import sys
 import subprocess
 import os
-OPENMVG_SFM_BIN = "/home/lijiang/codes/openMVG/build/Linux-x86_64-Release"
+
+OPENMVG_SFM_BIN = r"build/Linux-x86_64-Release"
+if os.name == 'nt':
+    OPENMVG_SFM_BIN = r"src\out\build\x64-Release\Windows-AMD64-RelWithDebInfo"
+
+OPENMVG_SFM_BIN = os.path.abspath(OPENMVG_SFM_BIN)
 
 # Indicate the openMVG camera sensor width directory
-CAMERA_SENSOR_WIDTH_DIRECTORY = "/home/lijiang/codes/openMVG/src/software/SfM" + \
-    "/../../openMVG/exif/sensor_width_database"
+CAMERA_SENSOR_WIDTH_DIRECTORY = os.path.abspath(r"src/openMVG/exif/sensor_width_database")
 
 
 if len(sys.argv) < 2:
@@ -47,6 +51,8 @@ if not os.path.exists(output_dir):
     os.mkdir(output_dir)
 if not os.path.exists(matches_dir):
     os.mkdir(matches_dir)
+if not os.path.exists(reconstruction_dir):
+    os.mkdir(reconstruction_dir)
 
 print("1. Intrinsics analysis")
 pIntrisics = subprocess.Popen([os.path.join(OPENMVG_SFM_BIN, "openMVG_main_SfMInit_ImageListing"),
@@ -55,19 +61,19 @@ pIntrisics.wait()
 
 print("2. Compute features")
 pFeatures = subprocess.Popen([os.path.join(OPENMVG_SFM_BIN, "openMVG_main_ComputeFeatures"),
-                              "-i", matches_dir+"/sfm_data.json", "-o", matches_dir, "-m", "SIFT"])
+                              "-i", os.path.join(matches_dir, "sfm_data.json"), "-o", matches_dir, "-m", "SIFT"])
 pFeatures.wait()
 
 # // Limit the number of pairs that will be used for matching
 # // -> limit to pose neighborhood thanks to the pose center prior location
 print("3.a list pairs")
 pMatches = subprocess.Popen([os.path.join(OPENMVG_SFM_BIN, "openMVG_main_ListMatchingPairs"), "-G", "-n", "8",
-                             "-i", matches_dir+"/sfm_data.json", "-o", matches_dir+"/pair_list.txt"])
+                             "-i", os.path.join(matches_dir, "sfm_data.json"), "-o", os.path.join(matches_dir, "pair_list.txt")])
 pMatches.wait()
 
 print("3.b Compute matches")
 pMatches = subprocess.Popen([os.path.join(OPENMVG_SFM_BIN, "openMVG_main_ComputeMatches"),
-                             "-i", matches_dir+"/sfm_data.json", "-l", matches_dir+"/pair_list.txt", "-o", matches_dir, "-g", "e"])
+                             "-i", os.path.join(matches_dir, "sfm_data.json"), "-l", os.path.join(matches_dir, "pair_list.txt"), "-o", matches_dir, "-g", "e"])
 pMatches.wait()
 
 # Create the reconstruction if not present
@@ -76,20 +82,19 @@ if not os.path.exists(reconstruction_dir):
 
 print("4. Do Global reconstruction")
 pRecons = subprocess.Popen([os.path.join(OPENMVG_SFM_BIN, "openMVG_main_GlobalSfM"),
-                            "-P", "-i", matches_dir+"/sfm_data.json", "-m", matches_dir, "-o", reconstruction_dir])
+                            "-P", "-i", os.path.join(matches_dir, "sfm_data.json"), "-m", matches_dir, "-o", reconstruction_dir])
 pRecons.wait()
 
-print("5. Colorize Structure")
+print("\n5. Colorize Structure")
 pRecons = subprocess.Popen([os.path.join(OPENMVG_SFM_BIN, "openMVG_main_ComputeSfM_DataColor"),  "-i",
-                            reconstruction_dir+"/sfm_data.bin", "-o", os.path.join(reconstruction_dir, "colorized.ply")])
+                            os.path.join(reconstruction_dir, "sfm_data.bin"), "-o", os.path.join(reconstruction_dir, "colorized.ply")])
 pRecons.wait()
 
 # optional, compute final valid structure from the known camera poses
 print("6. Structure from Known Poses (robust triangulation)")
-pRecons = subprocess.Popen([os.path.join(OPENMVG_SFM_BIN, "openMVG_main_ComputeStructureFromKnownPoses"),  "-i", reconstruction_dir +
-                            "/sfm_data.bin", "-m", matches_dir, "-f", os.path.join(matches_dir, "matches.e.bin"), "-o", os.path.join(reconstruction_dir, "robust.bin")])
+pRecons = subprocess.Popen([os.path.join(OPENMVG_SFM_BIN, "openMVG_main_ComputeStructureFromKnownPoses"),  "-i", os.path.join(reconstruction_dir, "sfm_data.bin"), "-m", matches_dir, "-f", os.path.join(matches_dir, "matches.e.bin"), "-o", os.path.join(reconstruction_dir, "robust.bin")])
 pRecons.wait()
 
 pRecons = subprocess.Popen([os.path.join(OPENMVG_SFM_BIN, "openMVG_main_ComputeSfM_DataColor"),  "-i",
-                            reconstruction_dir+"/robust.bin", "-o", os.path.join(reconstruction_dir, "robust_colorized.ply")])
+                            os.path.join(reconstruction_dir, "robust.bin"), "-o", os.path.join(reconstruction_dir, "robust_colorized.ply")])
 pRecons.wait()
