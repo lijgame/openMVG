@@ -1,0 +1,35 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "openMVG_main_GlobalSfM",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Linux-x86_64-Debug/openMVG_main_GlobalSfM",
+            "args": [
+                "-P",
+                "-i",
+                "openMVG_global_output/matches/sfm_data.json",
+                "-m",
+                "openMVG_global_output/matches",
+                "-o",
+                "recon_g"
+            ],
+            "stopAtEntry": false,
+            "cwd": "/home/lijiang/data/tcgb/",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+        }
+    ]
+}
